@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Newspaper, Landmark, Search, Menu, X } from "lucide-react";
+import { Newspaper, Link2, Search, Menu, X, MapPin } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const AppLayout = ({ children }: { children: React.ReactNode }) => {
@@ -8,7 +8,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isNews = location.pathname === "/" || location.pathname.startsWith("/article");
-  const isCivic = location.pathname.startsWith("/civic");
+  const isCivic = location.pathname.startsWith("/empact");
 
   return (
     <div className="min-h-screen bg-background">
@@ -26,29 +26,29 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
               </span>
             </Link>
 
-            {/* Desktop Nav */}
-            <nav className="hidden md:flex items-center gap-1">
+            {/* Desktop Nav — Tab-style */}
+            <nav className="hidden md:flex items-center gap-1 rounded-lg bg-secondary/60 p-1">
               <Link
                 to="/"
-                className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                className={`flex items-center gap-2 rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
                   isNews
-                    ? "bg-secondary text-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 <Newspaper className="h-4 w-4" />
                 News
               </Link>
               <Link
-                to="/civic"
-                className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                to="/empact"
+                className={`flex items-center gap-2 rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
                   isCivic
-                    ? "bg-secondary text-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <Landmark className="h-4 w-4" />
-                Civic Tools
+                <Link2 className="h-4 w-4" />
+                Em-pact Links
               </Link>
             </nav>
 
@@ -88,14 +88,14 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
                   News
                 </Link>
                 <Link
-                  to="/civic"
+                  to="/empact"
                   onClick={() => setMobileMenuOpen(false)}
                   className={`flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium ${
                     isCivic ? "bg-secondary text-foreground" : "text-muted-foreground"
                   }`}
                 >
-                  <Landmark className="h-4 w-4" />
-                  Civic Tools
+                  <Link2 className="h-4 w-4" />
+                  Em-pact Links
                 </Link>
               </nav>
             </motion.div>
