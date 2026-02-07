@@ -6,53 +6,49 @@
 
 @layer base {
   :root {
-    --background: 250 20% 97%;
-    --foreground: 240 15% 15%;
+    --background: 40 33% 97%;
+    --foreground: 220 20% 15%;
 
-    --card: 255 18% 99%;
-    --card-foreground: 240 15% 15%;
+    --card: 40 30% 99%;
+    --card-foreground: 220 20% 15%;
 
-    --popover: 255 18% 99%;
-    --popover-foreground: 240 15% 15%;
+    --popover: 40 30% 99%;
+    --popover-foreground: 220 20% 15%;
 
-    --primary: 260 25% 30%;
-    --primary-foreground: 250 20% 97%;
+    --primary: 215 30% 22%;
+    --primary-foreground: 40 33% 97%;
 
-    --secondary: 255 18% 93%;
-    --secondary-foreground: 240 15% 15%;
+    --secondary: 35 25% 92%;
+    --secondary-foreground: 220 20% 15%;
 
-    --muted: 255 12% 93%;
-    --muted-foreground: 240 8% 50%;
+    --muted: 35 15% 93%;
+    --muted-foreground: 220 10% 50%;
 
-    --accent: 175 35% 45%;
-    --accent-foreground: 240 15% 10%;
+    --accent: 38 80% 55%;
+    --accent-foreground: 220 20% 12%;
 
     --destructive: 0 60% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 255 14% 89%;
-    --input: 255 14% 89%;
-    --ring: 260 25% 30%;
+    --border: 35 20% 88%;
+    --input: 35 20% 88%;
+    --ring: 215 30% 22%;
 
     --radius: 0.5rem;
 
     /* Wake Up custom tokens */
-    --signal-fact: 175 35% 40%;
-    --signal-fact-bg: 175 25% 94%;
-    --signal-opinion: 260 30% 55%;
-    --signal-opinion-bg: 260 25% 95%;
-    --signal-interpretation: 200 25% 50%;
-    --signal-interpretation-bg: 200 20% 94%;
-    --signal-sensational: 15 60% 52%;
-    --signal-sensational-bg: 15 50% 96%;
-    --transparency: 175 30% 42%;
-    --transparency-bg: 175 25% 94%;
-    --civic: 260 25% 48%;
-    --civic-bg: 260 20% 95%;
-
-    /* Aura gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(260 25% 95%), hsl(175 25% 95%));
-    --gradient-hero: linear-gradient(160deg, hsl(260 20% 97%), hsl(175 20% 96%), hsl(250 18% 97%));
+    --signal-fact: 145 30% 42%;
+    --signal-fact-bg: 145 30% 95%;
+    --signal-opinion: 210 40% 50%;
+    --signal-opinion-bg: 210 40% 95%;
+    --signal-interpretation: 25 20% 55%;
+    --signal-interpretation-bg: 25 20% 94%;
+    --signal-sensational: 15 70% 55%;
+    --signal-sensational-bg: 15 70% 96%;
+    --transparency: 38 80% 55%;
+    --transparency-bg: 38 60% 95%;
+    --civic: 175 35% 42%;
+    --civic-bg: 175 30% 95%;
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -65,49 +61,46 @@
   }
 
   .dark {
-    --background: 250 15% 7%;
-    --foreground: 240 10% 90%;
+    --background: 220 20% 8%;
+    --foreground: 40 20% 90%;
 
-    --card: 255 12% 10%;
-    --card-foreground: 240 10% 90%;
+    --card: 220 18% 11%;
+    --card-foreground: 40 20% 90%;
 
-    --popover: 255 12% 10%;
-    --popover-foreground: 240 10% 90%;
+    --popover: 220 18% 11%;
+    --popover-foreground: 40 20% 90%;
 
-    --primary: 260 25% 75%;
-    --primary-foreground: 250 15% 7%;
+    --primary: 40 30% 85%;
+    --primary-foreground: 220 20% 8%;
 
-    --secondary: 255 12% 15%;
-    --secondary-foreground: 240 10% 90%;
+    --secondary: 220 15% 16%;
+    --secondary-foreground: 40 20% 90%;
 
-    --muted: 255 10% 15%;
-    --muted-foreground: 240 8% 55%;
+    --muted: 220 15% 16%;
+    --muted-foreground: 220 10% 55%;
 
-    --accent: 175 30% 45%;
-    --accent-foreground: 240 15% 8%;
+    --accent: 38 70% 50%;
+    --accent-foreground: 220 20% 8%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 255 10% 17%;
-    --input: 255 10% 17%;
-    --ring: 260 25% 75%;
+    --border: 220 15% 18%;
+    --input: 220 15% 18%;
+    --ring: 40 30% 85%;
 
-    --signal-fact: 175 35% 48%;
-    --signal-fact-bg: 175 18% 14%;
-    --signal-opinion: 260 30% 60%;
-    --signal-opinion-bg: 260 18% 14%;
-    --signal-interpretation: 200 25% 55%;
-    --signal-interpretation-bg: 200 15% 14%;
-    --signal-sensational: 15 60% 52%;
-    --signal-sensational-bg: 15 25% 14%;
-    --transparency: 175 30% 48%;
-    --transparency-bg: 175 18% 14%;
-    --civic: 260 25% 58%;
-    --civic-bg: 260 15% 14%;
-
-    --gradient-primary: linear-gradient(135deg, hsl(260 15% 12%), hsl(175 15% 12%));
-    --gradient-hero: linear-gradient(160deg, hsl(260 12% 9%), hsl(175 12% 9%), hsl(250 12% 9%));
+    --signal-fact: 145 30% 50%;
+    --signal-fact-bg: 145 20% 15%;
+    --signal-opinion: 210 40% 55%;
+    --signal-opinion-bg: 210 20% 15%;
+    --signal-interpretation: 25 20% 55%;
+    --signal-interpretation-bg: 25 15% 15%;
+    --signal-sensational: 15 70% 55%;
+    --signal-sensational-bg: 15 30% 15%;
+    --transparency: 38 70% 50%;
+    --transparency-bg: 38 30% 15%;
+    --civic: 175 35% 50%;
+    --civic-bg: 175 20% 15%;
 
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
@@ -164,11 +157,5 @@
     background-color: hsl(var(--civic-bg));
     color: hsl(var(--civic));
     @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
-  }
-  .gradient-aura {
-    background: var(--gradient-hero);
-  }
-  .gradient-card {
-    background: var(--gradient-primary);
   }
 }

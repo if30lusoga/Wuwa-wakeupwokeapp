@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import NewsCard from "@/components/NewsCard";
-import GeographicContext from "@/components/GeographicContext";
 import { mockArticles } from "@/data/mockData";
 
 const topics = ["All", "Politics", "Climate", "Business"] as const;
@@ -15,17 +14,17 @@ const Index = () => {
 
   return (
     <div>
-      {/* Hero with soft gradient aura */}
+      {/* Hero */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-8 rounded-xl gradient-aura p-6 -mx-2"
+        className="mb-8"
       >
         <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground tracking-tight mb-2">
           Today's News
         </h1>
         <p className="text-muted-foreground text-sm max-w-lg">
-          AI-summarized stories synthesized from multiple sources. Transparency signals help you understand how information is presented — not what to think about it.
+          AI-summarized stories from multiple sources. Transparency signals help you understand how information is presented.
         </p>
       </motion.div>
 
@@ -67,18 +66,11 @@ const Index = () => {
         </span>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* News Grid */}
-        <div className="lg:col-span-2 grid gap-4">
-          {filtered.map((article, i) => (
-            <NewsCard key={article.id} article={article} index={i} />
-          ))}
-        </div>
-
-        {/* Sidebar — Geographic Context */}
-        <div className="space-y-4">
-          <GeographicContext />
-        </div>
+      {/* News Grid */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {filtered.map((article, i) => (
+          <NewsCard key={article.id} article={article} index={i} />
+        ))}
       </div>
     </div>
   );

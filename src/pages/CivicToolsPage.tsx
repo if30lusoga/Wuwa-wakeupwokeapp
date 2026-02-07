@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
 import { Users, ScrollText, BookOpen, Building, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 
-const empactLinks = [
+const civicTools = [
   {
     id: "representatives",
     title: "Representative Finder",
@@ -37,23 +38,23 @@ const CivicToolsPage = () => {
         className="mb-8"
       >
         <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground tracking-tight mb-2">
-          Em-pact Links
+          Civic Tools
         </h1>
         <p className="text-muted-foreground text-sm max-w-lg">
-          Neutral civic infrastructure you can explore independently. These links are separate from news content and designed for clarity, not persuasion.
+          Neutral civic infrastructure you can explore independently. These tools are separate from news content and designed for clarity, not persuasion.
         </p>
       </motion.div>
 
       {/* Info Banner */}
-      <div className="rounded-xl gradient-card border border-civic/20 p-4 mb-8">
+      <div className="rounded-xl bg-civic-bg border border-civic/20 p-4 mb-8">
         <p className="text-sm text-foreground/80">
-          <strong className="text-foreground">About Em-pact Links:</strong> This section provides factual civic information as a public resource. It is intentionally separated from news content to avoid conflating information with advocacy. No actions are suggested or promoted.
+          <strong className="text-foreground">About Civic Tools:</strong> This section provides factual civic information as a public resource. It is intentionally separated from news content to avoid conflating information with advocacy. No actions are suggested or promoted.
         </p>
       </div>
 
-      {/* Link Cards */}
+      {/* Tool Cards */}
       <div className="grid gap-4 md:grid-cols-2">
-        {empactLinks.map((tool, i) => (
+        {civicTools.map((tool, i) => (
           <motion.div
             key={tool.id}
             initial={{ opacity: 0, y: 16 }}

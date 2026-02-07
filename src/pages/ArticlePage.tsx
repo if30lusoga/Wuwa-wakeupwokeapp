@@ -2,11 +2,9 @@ import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Clock, Eye, Quote, FileText, AlertTriangle,
-  ExternalLink, User
+  ExternalLink, User, Building
 } from "lucide-react";
 import { mockArticleDetail, mockArticles } from "@/data/mockData";
-import ContentBreakdownBar from "@/components/ContentBreakdownBar";
-import SourcesSynthesisBanner from "@/components/SourcesSynthesisBanner";
 
 const typeConfig = {
   factual: {
@@ -31,6 +29,8 @@ const typeConfig = {
 
 const ArticlePage = () => {
   const { id } = useParams();
+
+  // For demo, use detail for article 1, otherwise find from mock
   const article = id === "1" ? mockArticleDetail : mockArticles.find((a) => a.id === id);
   const detail = id === "1" ? mockArticleDetail : null;
 
@@ -45,6 +45,7 @@ const ArticlePage = () => {
 
   return (
     <div className="max-w-3xl mx-auto">
+      {/* Back */}
       <Link
         to="/"
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
@@ -77,26 +78,67 @@ const ArticlePage = () => {
           </p>
         </div>
 
-        {/* Sources Synthesis Banner */}
-        <div className="mb-6">
-          <SourcesSynthesisBanner
-            sourceCount={article.sources}
-            sourceNames={detail?.sourcesDetail.map((s) => s.name)}
-          />
-        </div>
-
-        {/* Content Breakdown — PROMINENT */}
-        <div className="mb-6">
-          <ContentBreakdownBar
-            factual={article.contentBreakdown.factual}
-            opinion={article.contentBreakdown.opinion}
-            interpretation={article.contentBreakdown.interpretation}
-            variant="prominent"
-          />
-        </div>
-
         {/* Transparency Signals Card */}
-        <TransparencySignals article={article} />
+        <div className="rounded-xl border border-border bg-card p-5 mb-6">
+          <h2 className="font-display text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+            <Eye className="h-4 w-4 text-transparency" />
+            Transparency Signals
+          </h2>
+          <p className="text-xs text-muted-foreground mb-4">
+            These signals describe how information is presented in this story. They are not judgments of accuracy.
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-secondary/50">
+              <Eye className="h-4 w-4 mt-0.5 text-transparency" />
+              <div>
+                <div className="text-xs font-medium text-foreground">Source Diversity</div>
+                <div className="text-xs text-muted-foreground capitalize">{article.transparencySignals.sourceDiversity}</div>
+              </div>
+            </div>
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-secondary/50">
+              <Quote className="h-4 w-4 mt-0.5 text-transparency" />
+              <div>
+                <div className="text-xs font-medium text-foreground">Attribution</div>
+                <div className="text-xs text-muted-foreground">
+                  {article.transparencySignals.hasAttributionClarity ? "Clearly attributed" : "Limited attribution"}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-secondary/50">
+              <FileText className="h-4 w-4 mt-0.5 text-transparency" />
+              <div>
+                <div className="text-xs font-medium text-foreground">Primary Data</div>
+                <div className="text-xs text-muted-foreground">
+                  {article.transparencySignals.hasPrimaryData ? "References primary data" : "No primary data cited"}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-secondary/50">
+              <AlertTriangle className={`h-4 w-4 mt-0.5 ${article.transparencySignals.sensationalLanguageDetected ? "text-signal-sensational" : "text-transparency"}`} />
+              <div>
+                <div className="text-xs font-medium text-foreground">Language Framing</div>
+                <div className="text-xs text-muted-foreground">
+                  {article.transparencySignals.sensationalLanguageDetected ? "Sensational language detected" : "Neutral framing"}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Content Breakdown */}
+          <div className="mt-4 pt-4 border-t border-border">
+            <div className="text-xs font-medium text-foreground mb-2">Content Breakdown</div>
+            <div className="flex h-2 rounded-full overflow-hidden bg-muted mb-2">
+              <div className="h-full bg-signal-fact" style={{ width: `${article.contentBreakdown.factual}%` }} />
+              <div className="h-full bg-signal-opinion" style={{ width: `${article.contentBreakdown.opinion}%` }} />
+              <div className="h-full bg-signal-interpretation" style={{ width: `${article.contentBreakdown.interpretation}%` }} />
+            </div>
+            <div className="flex justify-between text-[10px] text-muted-foreground">
+              <span>Factual {article.contentBreakdown.factual}%</span>
+              <span>Opinion {article.contentBreakdown.opinion}%</span>
+              <span>Analysis {article.contentBreakdown.interpretation}%</span>
+            </div>
+          </div>
+        </div>
 
         {/* Article Content with Labels */}
         {detail && (
@@ -176,6 +218,7 @@ const ArticlePage = () => {
           </div>
         )}
 
+        {/* Non-detail fallback */}
         {!detail && (
           <div className="rounded-xl border border-border bg-card p-8 text-center">
             <p className="text-muted-foreground text-sm">
@@ -187,54 +230,5 @@ const ArticlePage = () => {
     </div>
   );
 };
-
-/* Extracted sub-component */
-const TransparencySignals = ({ article }: { article: { transparencySignals: { hasAttributionClarity: boolean; sourceDiversity: string; hasPrimaryData: boolean; sensationalLanguageDetected: boolean } } }) => (
-  <div className="rounded-xl border border-border bg-card p-5 mb-6">
-    <h2 className="font-display text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-      <Eye className="h-4 w-4 text-transparency" />
-      Transparency Signals
-    </h2>
-    <p className="text-xs text-muted-foreground mb-4">
-      These signals describe how information is presented in this story. They are not judgments of accuracy.
-    </p>
-    <div className="grid grid-cols-2 gap-3">
-      <div className="flex items-start gap-2 p-3 rounded-lg bg-secondary/50">
-        <Eye className="h-4 w-4 mt-0.5 text-transparency" />
-        <div>
-          <div className="text-xs font-medium text-foreground">Source Diversity</div>
-          <div className="text-xs text-muted-foreground capitalize">{article.transparencySignals.sourceDiversity}</div>
-        </div>
-      </div>
-      <div className="flex items-start gap-2 p-3 rounded-lg bg-secondary/50">
-        <Quote className="h-4 w-4 mt-0.5 text-transparency" />
-        <div>
-          <div className="text-xs font-medium text-foreground">Attribution</div>
-          <div className="text-xs text-muted-foreground">
-            {article.transparencySignals.hasAttributionClarity ? "Clearly attributed" : "Limited attribution"}
-          </div>
-        </div>
-      </div>
-      <div className="flex items-start gap-2 p-3 rounded-lg bg-secondary/50">
-        <FileText className="h-4 w-4 mt-0.5 text-transparency" />
-        <div>
-          <div className="text-xs font-medium text-foreground">Primary Data</div>
-          <div className="text-xs text-muted-foreground">
-            {article.transparencySignals.hasPrimaryData ? "References primary data" : "No primary data cited"}
-          </div>
-        </div>
-      </div>
-      <div className="flex items-start gap-2 p-3 rounded-lg bg-secondary/50">
-        <AlertTriangle className={`h-4 w-4 mt-0.5 ${article.transparencySignals.sensationalLanguageDetected ? "text-signal-sensational" : "text-transparency"}`} />
-        <div>
-          <div className="text-xs font-medium text-foreground">Language Framing</div>
-          <div className="text-xs text-muted-foreground">
-            {article.transparencySignals.sensationalLanguageDetected ? "Sensational language detected" : "Neutral framing"}
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-);
 
 export default ArticlePage;
