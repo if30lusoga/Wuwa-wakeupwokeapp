@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Clock, ExternalLink, Eye, Quote, FileText, AlertTriangle } from "lucide-react";
+import { Clock, Layers, Eye, Quote, FileText, AlertTriangle } from "lucide-react";
+import ContentBreakdownBar from "./ContentBreakdownBar";
 
 export interface NewsArticle {
   id: string;
@@ -56,6 +57,12 @@ const NewsCard = ({ article, index }: { article: NewsArticle; index: number }) =
             {article.title}
           </h3>
 
+          {/* Multi-source indicator */}
+          <div className="flex items-center gap-1.5 mb-2 text-xs text-accent">
+            <Layers className="h-3 w-3" />
+            <span className="font-medium">Synthesized from {article.sources} sources</span>
+          </div>
+
           {/* Summary */}
           <p className="text-sm text-muted-foreground leading-relaxed mb-4 line-clamp-3">
             {article.summary}
@@ -63,10 +70,6 @@ const NewsCard = ({ article, index }: { article: NewsArticle; index: number }) =
 
           {/* Transparency Signals Row */}
           <div className="flex flex-wrap items-center gap-2 mb-3">
-            <span className="transparency-badge">
-              <Eye className="h-3 w-3" />
-              {article.sources} sources
-            </span>
             {article.transparencySignals.hasAttributionClarity && (
               <span className="transparency-badge">
                 <Quote className="h-3 w-3" />
@@ -87,37 +90,12 @@ const NewsCard = ({ article, index }: { article: NewsArticle; index: number }) =
             )}
           </div>
 
-          {/* Content breakdown bar */}
-          <div className="flex items-center gap-2">
-            <div className="flex-1 flex h-1.5 rounded-full overflow-hidden bg-muted">
-              <div
-                className="h-full bg-signal-fact rounded-l-full"
-                style={{ width: `${article.contentBreakdown.factual}%` }}
-              />
-              <div
-                className="h-full bg-signal-opinion"
-                style={{ width: `${article.contentBreakdown.opinion}%` }}
-              />
-              <div
-                className="h-full bg-signal-interpretation rounded-r-full"
-                style={{ width: `${article.contentBreakdown.interpretation}%` }}
-              />
-            </div>
-            <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-signal-fact" />
-                Fact
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-signal-opinion" />
-                Opinion
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-signal-interpretation" />
-                Analysis
-              </span>
-            </div>
-          </div>
+          {/* Content breakdown bar — more prominent */}
+          <ContentBreakdownBar
+            factual={article.contentBreakdown.factual}
+            opinion={article.contentBreakdown.opinion}
+            interpretation={article.contentBreakdown.interpretation}
+          />
         </article>
       </Link>
     </motion.div>

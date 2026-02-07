@@ -21,7 +21,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/article/:id" element={<ArticlePage />} />
-            <Route path="/civic" element={<CivicToolsPage />} />
+            <Route path="/empact" element={<CivicToolsPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AppLayout>
