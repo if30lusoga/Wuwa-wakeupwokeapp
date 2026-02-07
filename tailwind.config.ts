@@ -13,6 +13,10 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        display: ['"Playfair Display"', 'Georgia', 'serif'],
+        body: ['"DM Sans"', 'system-ui', 'sans-serif'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -46,6 +50,24 @@ export default {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
+        },
+        signal: {
+          fact: "hsl(var(--signal-fact))",
+          "fact-bg": "hsl(var(--signal-fact-bg))",
+          opinion: "hsl(var(--signal-opinion))",
+          "opinion-bg": "hsl(var(--signal-opinion-bg))",
+          interpretation: "hsl(var(--signal-interpretation))",
+          "interpretation-bg": "hsl(var(--signal-interpretation-bg))",
+          sensational: "hsl(var(--signal-sensational))",
+          "sensational-bg": "hsl(var(--signal-sensational-bg))",
+        },
+        transparency: {
+          DEFAULT: "hsl(var(--transparency))",
+          bg: "hsl(var(--transparency-bg))",
+        },
+        civic: {
+          DEFAULT: "hsl(var(--civic))",
+          bg: "hsl(var(--civic-bg))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
