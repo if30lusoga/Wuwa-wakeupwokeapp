@@ -1,16 +1,38 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import NewsCard from "@/components/NewsCard";
-import { mockArticles } from "@/data/mockData";
+import type { NewsArticle } from "@/components/NewsCard";
+import { apiGet } from "@/lib/api";
 
 const topics = ["All", "Politics", "Climate", "Business"] as const;
 
 const Index = () => {
   const [activeTopic, setActiveTopic] = useState<string>("All");
+  const [articles, setArticles] = useState<NewsArticle[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filtered = activeTopic === "All"
-    ? mockArticles
-    : mockArticles.filter((a) => a.topic === activeTopic);
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    apiGet<NewsArticle[]>("/api/articles")
+      .then((data) => {
+        if (!cancelled) setArticles(data);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  const filtered =
+    activeTopic === "All"
+      ? articles
+      : articles.filter((a) => a.topic === activeTopic);
 
   return (
     <div>
@@ -66,12 +88,24 @@ const Index = () => {
         </span>
       </div>
 
+      {/* Loading */}
+      {loading && (
+        <p className="text-muted-foreground text-sm">Loading articles…</p>
+      )}
+
+      {/* Error */}
+      {error && !loading && (
+        <p className="text-destructive text-sm">Error: {error}</p>
+      )}
+
       {/* News Grid */}
-      <div className="grid gap-4 md:grid-cols-2">
-        {filtered.map((article, i) => (
-          <NewsCard key={article.id} article={article} index={i} />
-        ))}
-      </div>
+      {!loading && !error && (
+        <div className="grid gap-4 md:grid-cols-2">
+          {filtered.map((article, i) => (
+            <NewsCard key={article.id} article={article} index={i} />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

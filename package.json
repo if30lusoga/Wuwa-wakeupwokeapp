@@ -10,7 +10,10 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "backend:dev": "npm run dev --prefix backend",
+    "backend:build": "npm run build --prefix backend",
+    "backend:start": "npm run start --prefix backend"
   },
   "dependencies": {
     "@fontsource/dm-sans": "^5.2.8",

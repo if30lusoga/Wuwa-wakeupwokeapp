@@ -1,10 +1,23 @@
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Clock, Eye, Quote, FileText, AlertTriangle,
-  ExternalLink, User, Building
+  ExternalLink, User,
 } from "lucide-react";
-import { mockArticleDetail, mockArticles } from "@/data/mockData";
+import type { NewsArticle } from "@/components/NewsCard";
+import { apiGet } from "@/lib/api";
+
+type FullContentBlock =
+  | { type: "factual"; text: string }
+  | { type: "interpretation"; text: string }
+  | { type: "opinion"; attribution: string; text: string };
+
+type ArticleDetail = NewsArticle & {
+  fullContent?: FullContentBlock[];
+  sourcesDetail?: Array<{ name: string; type: string }>;
+  quotedVoices?: Array<{ name: string; role: string }>;
+};
 
 const typeConfig = {
   factual: {
@@ -29,15 +42,50 @@ const typeConfig = {
 
 const ArticlePage = () => {
   const { id } = useParams();
+  const [article, setArticle] = useState<ArticleDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // For demo, use detail for article 1, otherwise find from mock
-  const article = id === "1" ? mockArticleDetail : mockArticles.find((a) => a.id === id);
-  const detail = id === "1" ? mockArticleDetail : null;
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    setArticle(null);
+    apiGet<ArticleDetail>(`/api/articles/${id}`)
+      .then((data) => {
+        if (!cancelled) setArticle(data);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [id]);
 
-  if (!article) {
+  const detail = article?.fullContent ? article : null;
+
+  if (loading) {
+    return (
+      <div className="max-w-3xl mx-auto">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to feed
+        </Link>
+        <p className="text-muted-foreground text-sm">Loading…</p>
+      </div>
+    );
+  }
+
+  if (error || !article) {
     return (
       <div className="text-center py-20">
-        <p className="text-muted-foreground">Article not found.</p>
+        <p className="text-muted-foreground">{error ?? "Article not found."}</p>
         <Link to="/" className="text-primary underline mt-2 inline-block">Back to feed</Link>
       </div>
     );
@@ -141,7 +189,7 @@ const ArticlePage = () => {
         </div>
 
         {/* Article Content with Labels */}
-        {detail && (
+        {detail && detail.fullContent && (
           <div className="mb-6">
             <h2 className="font-display text-lg font-semibold text-foreground mb-4">
               Full Analysis
@@ -180,7 +228,7 @@ const ArticlePage = () => {
         )}
 
         {/* Source & Context Panel */}
-        {detail && (
+        {detail && detail.sourcesDetail && detail.quotedVoices && (
           <div className="grid md:grid-cols-2 gap-4 mb-6">
             <div className="rounded-xl border border-border bg-card p-5">
               <h3 className="font-display text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
