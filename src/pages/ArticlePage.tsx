@@ -13,9 +13,11 @@ type FullContentBlock =
   | { type: "interpretation"; text: string }
   | { type: "opinion"; attribution: string; text: string };
 
+type SourceDetail = { name: string; type: string; url?: string; publishedAt?: string };
+
 type ArticleDetail = NewsArticle & {
   fullContent?: FullContentBlock[];
-  sourcesDetail?: Array<{ name: string; type: string }>;
+  sourcesDetail?: SourceDetail[];
   quotedVoices?: Array<{ name: string; role: string }>;
 };
 
@@ -227,8 +229,8 @@ const ArticlePage = () => {
           </div>
         )}
 
-        {/* Source & Context Panel */}
-        {detail && detail.sourcesDetail && detail.quotedVoices && (
+        {/* Source & Context Panel - show when we have sources (story detail) */}
+        {article?.sourcesDetail && (
           <div className="grid md:grid-cols-2 gap-4 mb-6">
             <div className="rounded-xl border border-border bg-card p-5">
               <h3 className="font-display text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
@@ -236,10 +238,16 @@ const ArticlePage = () => {
                 Sources
               </h3>
               <div className="space-y-2">
-                {detail.sourcesDetail.map((source, i) => (
-                  <div key={i} className="flex items-center justify-between text-sm">
-                    <span className="text-foreground">{source.name}</span>
-                    <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded">
+                {article.sourcesDetail.map((source, i) => (
+                  <div key={i} className="flex items-center justify-between text-sm gap-2">
+                    {source.url ? (
+                      <a href={source.url} target="_blank" rel="noopener noreferrer" className="text-foreground hover:underline truncate min-w-0">
+                        {source.name}
+                      </a>
+                    ) : (
+                      <span className="text-foreground">{source.name}</span>
+                    )}
+                    <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded shrink-0">
                       {source.type}
                     </span>
                   </div>
@@ -253,14 +261,16 @@ const ArticlePage = () => {
                 Quoted Voices
               </h3>
               <div className="space-y-2">
-                {detail.quotedVoices.map((voice, i) => (
+                {(article.quotedVoices ?? []).length > 0 ? (article.quotedVoices ?? []).map((voice, i) => (
                   <div key={i} className="flex items-center justify-between text-sm">
                     <span className="text-foreground">{voice.name}</span>
                     <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded">
                       {voice.role}
                     </span>
                   </div>
-                ))}
+                )) : (
+                  <p className="text-xs text-muted-foreground">No quoted voices identified in source material.</p>
+                )}
               </div>
             </div>
           </div>

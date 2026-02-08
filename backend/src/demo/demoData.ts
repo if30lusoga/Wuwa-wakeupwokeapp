@@ -26,9 +26,16 @@ export type FullContentBlock =
   | { type: "interpretation"; text: string }
   | { type: "opinion"; attribution: string; text: string };
 
+export interface SourceDetail {
+  name: string;
+  type: string;
+  url?: string;
+  publishedAt?: string;
+}
+
 export interface ArticleDetail extends ArticleBase {
   fullContent?: FullContentBlock[];
-  sourcesDetail?: Array<{ name: string; type: string }>;
+  sourcesDetail?: SourceDetail[];
   quotedVoices?: Array<{ name: string; role: string }>;
 }
 

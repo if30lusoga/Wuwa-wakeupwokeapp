@@ -20,7 +20,6 @@ const fastify = Fastify({ logger: true });
 
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
 const INGEST_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
-const FULL_CONTENT_STORY_LIMIT = 3;
 
 await fastify.register(cors, {
   origin: "http://localhost:8080",
@@ -29,14 +28,9 @@ await fastify.register(cors, {
 // Health check
 fastify.get("/health", async () => ({ ok: true }));
 
-// GET /api/articles
+// GET /api/articles - demo-friendly feed: 2–4 sources (fallback 2–5 if <8), limit 15
 fastify.get<{
-  Querystring: {
-    minSources?: string;
-    limit?: string;
-    topic?: string;
-    region?: string;
-  };
+  Querystring: { limit?: string };
 }>("/api/articles", async (request, reply) => {
   try {
     const articleCount = await getArticleCount();
@@ -44,33 +38,32 @@ fastify.get<{
 
     const storyCount = await getStoryCount();
     if (storyCount > 0) {
-      const minSources = Math.max(1, parseInt(request.query.minSources ?? "3", 10) || 3);
-      const limit = Math.min(50, Math.max(1, parseInt(request.query.limit ?? "15", 10) || 15));
-      const topicFilter = request.query.topic?.trim() || undefined;
-      const regionFilter = request.query.region?.trim() || undefined;
+      const limit = Math.min(30, Math.max(1, parseInt(request.query.limit ?? "15", 10) || 15));
 
       const storiesWithArticles = await getStoriesWithArticles();
 
-      // Filter: sources >= minSources, optional topic/region
-      const filtered = storiesWithArticles.filter(({ story, articleIds }) => {
-        if (articleIds.length < minSources) return false;
-        if (topicFilter && story.topic !== topicFilter) return false;
-        if (regionFilter && story.region !== regionFilter) return false;
-        return true;
-      });
-
-      // Fetch articles for each story to compute newest publishedAt and build result
-      const candidates: Array<{
+      // Fetch articles for each story
+      const allCandidates: Array<{
         story: (typeof storiesWithArticles)[0]["story"];
         articleIds: string[];
         storyArticles: Awaited<ReturnType<typeof getArticlesByIds>>;
       }> = [];
-      for (const { story, articleIds } of filtered) {
+      for (const { story, articleIds } of storiesWithArticles) {
         const storyArticles = await getArticlesByIds(articleIds);
         if (storyArticles.length > 0) {
-          candidates.push({ story, articleIds, storyArticles });
+          allCandidates.push({ story, articleIds, storyArticles });
         }
       }
+
+      // Filter by sources (articleCount): 2–4 inclusive; if <8, fallback to 2–5
+      const filterByRange = (min: number, max: number) =>
+        allCandidates.filter((c) => {
+          const s = c.storyArticles.length;
+          return s >= min && s <= max;
+        });
+
+      let candidates = filterByRange(2, 4);
+      if (candidates.length < 8) candidates = filterByRange(2, 5);
 
       // Sort: sources desc, then newest publishedAt desc
       candidates.sort((a, b) => {
@@ -106,13 +99,10 @@ fastify.get<{ Params: { id: string } }>("/api/articles/:id", async (request, rep
       const { story, articleIds } = storyData;
       const storyArticles = await getArticlesByIds(articleIds);
       if (storyArticles.length > 0) {
-        const storiesWithArticles = await getStoriesWithArticles();
-        const sortedByNewest = storiesWithArticles.sort(
-          (a, b) => new Date(b.story.updatedAt).getTime() - new Date(a.story.updatedAt).getTime()
-        );
-        const newestIds = sortedByNewest.slice(0, FULL_CONTENT_STORY_LIMIT).map((s) => s.story.storyId);
-        const includeFullContent = newestIds.includes(id);
-        return storyToDetailShape(story, storyArticles, includeFullContent);
+        // fullContent only when articleCount is 3 or 4
+        const articleCount = storyArticles.length;
+        const includeFullContent = articleCount === 3 || articleCount === 4;
+        return await storyToDetailShape(story, storyArticles, includeFullContent);
       }
     }
 

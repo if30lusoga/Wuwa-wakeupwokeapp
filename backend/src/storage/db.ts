@@ -11,6 +11,7 @@ export interface StoredArticle {
   publisher: string;
   publishedAt: string;
   createdAt: string;
+  url?: string;
 }
 
 export interface StoredStory {
@@ -69,12 +70,25 @@ async function getDb(): Promise<Database> {
         region TEXT NOT NULL,
         publisher TEXT NOT NULL,
         publishedAt TEXT NOT NULL,
-        createdAt TEXT NOT NULL
+        createdAt TEXT NOT NULL,
+        url TEXT
       )
     `);
     db.run(`CREATE INDEX idx_articles_published ON articles(publishedAt DESC)`);
   }
   ensureStoryTables(db);
+  // Migration: add url column if missing (existing DBs)
+  try {
+    const info = db.exec(`PRAGMA table_info(articles)`);
+    const rows = info[0]?.values ?? [];
+    const colNames = rows.map((r: unknown[]) => (r as unknown[])[1]);
+    if (!colNames.includes("url")) {
+      db.run(`ALTER TABLE articles ADD COLUMN url TEXT`);
+      persistDb();
+    }
+  } catch {
+    /* ignore */
+  }
   return db;
 }
 
@@ -93,12 +107,12 @@ export async function insertArticles(articles: StoredArticle[]): Promise<number>
   const database = await getDb();
   let inserted = 0;
   const stmt = database.prepare(`
-    INSERT OR IGNORE INTO articles (id, title, summary, topic, region, publisher, publishedAt, createdAt)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT OR IGNORE INTO articles (id, title, summary, topic, region, publisher, publishedAt, createdAt, url)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   for (const a of articles) {
     const before = database.getRowsModified();
-    stmt.run([a.id, a.title, a.summary, a.topic, a.region, a.publisher, a.publishedAt, a.createdAt]);
+    stmt.run([a.id, a.title, a.summary, a.topic, a.region, a.publisher, a.publishedAt, a.createdAt, a.url ?? null]);
     if (database.getRowsModified() > before) inserted++;
   }
   stmt.free();
@@ -108,20 +122,26 @@ export async function insertArticles(articles: StoredArticle[]): Promise<number>
 
 export async function getAllArticles(): Promise<StoredArticle[]> {
   const database = await getDb();
-  const rows = database.exec(`SELECT id, title, summary, topic, region, publisher, publishedAt, createdAt
+  const rows = database.exec(`SELECT id, title, summary, topic, region, publisher, publishedAt, createdAt, url
     FROM articles ORDER BY publishedAt DESC`);
   if (!rows.length || !rows[0].values.length) return [];
   const cols = rows[0].columns as string[];
-  return rows[0].values.map((row: unknown[]) => ({
-    id: row[cols.indexOf("id")],
-    title: row[cols.indexOf("title")],
-    summary: row[cols.indexOf("summary")],
-    topic: row[cols.indexOf("topic")],
-    region: row[cols.indexOf("region")],
-    publisher: row[cols.indexOf("publisher")],
-    publishedAt: row[cols.indexOf("publishedAt")],
-    createdAt: row[cols.indexOf("createdAt")],
-  })) as StoredArticle[];
+  return rows[0].values.map((row: unknown[]) => {
+    const r = row as unknown[];
+    const obj: StoredArticle = {
+      id: r[cols.indexOf("id")],
+      title: r[cols.indexOf("title")],
+      summary: r[cols.indexOf("summary")],
+      topic: r[cols.indexOf("topic")],
+      region: r[cols.indexOf("region")],
+      publisher: r[cols.indexOf("publisher")],
+      publishedAt: r[cols.indexOf("publishedAt")],
+      createdAt: r[cols.indexOf("createdAt")],
+    };
+    const urlIdx = cols.indexOf("url");
+    if (urlIdx >= 0 && r[urlIdx]) obj.url = r[urlIdx] as string;
+    return obj;
+  }) as StoredArticle[];
 }
 
 export async function getArticlesWithin24h(): Promise<StoredArticle[]> {
@@ -132,13 +152,15 @@ export async function getArticlesWithin24h(): Promise<StoredArticle[]> {
 export async function getArticlesWithinHours(hours: number): Promise<StoredArticle[]> {
   const database = await getDb();
   const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
-  const stmt = database.prepare(`SELECT id, title, summary, topic, region, publisher, publishedAt, createdAt
+  const stmt = database.prepare(`SELECT id, title, summary, topic, region, publisher, publishedAt, createdAt, url
     FROM articles WHERE publishedAt >= ? ORDER BY publishedAt DESC`);
   stmt.bind([since]);
   const result: StoredArticle[] = [];
   while (stmt.step()) {
     const row = stmt.getAsObject() as Record<string, string>;
-    result.push(row as unknown as StoredArticle);
+    const a: StoredArticle = row as unknown as StoredArticle;
+    if (row.url) a.url = row.url;
+    result.push(a);
   }
   stmt.free();
   return result;
@@ -148,12 +170,15 @@ export async function getArticlesByIds(ids: string[]): Promise<StoredArticle[]> 
   if (ids.length === 0) return [];
   const database = await getDb();
   const result: StoredArticle[] = [];
-  const stmt = database.prepare(`SELECT id, title, summary, topic, region, publisher, publishedAt, createdAt
+  const stmt = database.prepare(`SELECT id, title, summary, topic, region, publisher, publishedAt, createdAt, url
     FROM articles WHERE id = ?`);
   for (const id of ids) {
     stmt.bind([id]);
     if (stmt.step()) {
-      result.push(stmt.getAsObject() as unknown as StoredArticle);
+      const row = stmt.getAsObject() as Record<string, string>;
+      const a: StoredArticle = row as unknown as StoredArticle;
+      if (row.url) a.url = row.url;
+      result.push(a);
     }
     stmt.reset();
   }
@@ -163,7 +188,7 @@ export async function getArticlesByIds(ids: string[]): Promise<StoredArticle[]> 
 
 export async function getArticleById(id: string): Promise<StoredArticle | null> {
   const database = await getDb();
-  const stmt = database.prepare(`SELECT id, title, summary, topic, region, publisher, publishedAt, createdAt
+  const stmt = database.prepare(`SELECT id, title, summary, topic, region, publisher, publishedAt, createdAt, url
     FROM articles WHERE id = ?`);
   stmt.bind([id]);
   if (!stmt.step()) {
@@ -172,7 +197,9 @@ export async function getArticleById(id: string): Promise<StoredArticle | null> 
   }
   const row = stmt.getAsObject() as Record<string, string>;
   stmt.free();
-  return row as unknown as StoredArticle;
+  const a: StoredArticle = row as unknown as StoredArticle;
+  if (row.url) a.url = row.url;
+  return a;
 }
 
 export async function getArticleCount(): Promise<number> {

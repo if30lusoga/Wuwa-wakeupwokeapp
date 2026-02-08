@@ -63,6 +63,7 @@ export async function runIngestion(): Promise<{ ingested: number; errors: number
           publisher: source.publisher,
           publishedAt,
           createdAt: now,
+          url: item.link?.trim() || undefined,
         });
       }
     } catch (err) {

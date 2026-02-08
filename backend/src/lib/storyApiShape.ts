@@ -2,6 +2,11 @@ import type { ArticleBase, ArticleDetail, FullContentBlock } from "../demo/demoD
 import type { StoredArticle } from "../storage/db.js";
 import type { StoredStory } from "../storage/db.js";
 import { computeStorySignals } from "../services/storySignals.js";
+import {
+  synthesizeStoryDetail,
+  synthesizeStoryDetailAsync,
+  toArticleInput,
+} from "../services/storyDetailSynthesis.js";
 
 const WIRE_LIKE = new Set(["Reuters", "AP", "AFP", "Associated Press", "BBC"]);
 const INSTITUTION_LIKE = new Set(["NASA", "European Commission", "WTO", "IEA", "CDC", "NASA Climate"]);
@@ -26,13 +31,24 @@ function formatTimeAgo(isoDate: string): string {
   return `${Math.floor(diffDays / 7)}w ago`;
 }
 
+const SUMMARY_MAX_LENGTH = 240;
+
+function truncateSummary(text: string): string {
+  const flattened = text.replace(/\s+/g, " ").trim();
+  if (flattened.length <= SUMMARY_MAX_LENGTH) return flattened;
+  const cut = flattened.slice(0, SUMMARY_MAX_LENGTH);
+  const lastSpace = cut.lastIndexOf(" ");
+  const end = lastSpace > SUMMARY_MAX_LENGTH * 0.6 ? lastSpace : SUMMARY_MAX_LENGTH;
+  return flattened.slice(0, end).trim() + "…";
+}
+
 function pickStorySummary(articles: StoredArticle[]): string {
   const sorted = [...articles].sort(
     (a, b) => b.summary.length - a.summary.length
   );
   const best = sorted[0];
   if (!best) return "";
-  if (articles.length === 1) return best.summary;
+  if (articles.length === 1) return truncateSummary(best.summary);
   const parts = [best.summary];
   for (const a of sorted.slice(1, 3)) {
     if (a.summary !== best.summary && a.summary.length > 50) {
@@ -42,7 +58,8 @@ function pickStorySummary(articles: StoredArticle[]): string {
       }
     }
   }
-  return parts.length > 1 ? parts.join(" ") : best.summary;
+  const combined = parts.length > 1 ? parts.join(" ") : best.summary;
+  return truncateSummary(combined);
 }
 
 export function storyToApiShape(
@@ -68,58 +85,34 @@ export function storyToApiShape(
   };
 }
 
-export function storyToDetailShape(
+export async function storyToDetailShape(
   story: StoredStory,
   articles: StoredArticle[],
   includeFullContent: boolean
-): ArticleDetail {
+): Promise<ArticleDetail> {
   const base = storyToApiShape(story, articles);
 
-  const sourcesDetail = [
-    ...new Set(articles.map((a) => a.publisher)),
-  ].map((name) => ({ name, type: inferSourceType(name) }));
+  // sourcesDetail: ALL underlying articles with { name, type, url, publishedAt }
+  const sourcesDetail = articles.map((a) => ({
+    name: a.publisher,
+    type: inferSourceType(a.publisher),
+    url: a.url,
+    publishedAt: a.publishedAt,
+  }));
 
-  const quotedVoices: Array<{ name: string; role: string }> = [];
-  const text = articles.map((a) => a.summary).join(" ");
-  const attrMatch = text.match(/according to ([^,.]+)/gi);
-  if (attrMatch) {
-    for (const m of attrMatch.slice(0, 3)) {
-      const name = m.replace(/according to\s+/i, "").trim();
-      if (name.length > 3) quotedVoices.push({ name, role: "Source" });
-    }
-    const seen = new Set(quotedVoices.map((v) => v.name));
-    quotedVoices.length = 0;
-    for (const m of attrMatch.slice(0, 5)) {
-      const name = m.replace(/according to\s+/i, "").trim();
-      if (name.length > 3 && !seen.has(name)) {
-        seen.add(name);
-        quotedVoices.push({ name, role: "Source" });
-      }
-    }
-  }
-
+  let quotedVoices: Array<{ name: string; role: string }> = [];
   let fullContent: FullContentBlock[] | undefined;
+
   if (includeFullContent && articles.length > 0) {
-    const combined = articles.map((a) => a.summary).join(" ");
-    const blocks: FullContentBlock[] = [];
-    const factualSummary = pickStorySummary(articles);
-    if (factualSummary) {
-      blocks.push({ type: "factual", text: factualSummary });
-    }
-    const quoteMatch = combined.match(/"([^"]{20,})"(\s+(?:said|stated|argued|explained)\s+[^."]+)?/g);
-    if (quoteMatch && quoteMatch.length > 0) {
-      for (const q of quoteMatch.slice(0, 2)) {
-        const inner = q.match(/"([^"]+)"/);
-        if (inner) {
-          blocks.push({ type: "opinion", attribution: "Source", text: inner[1] });
-        }
-      }
-    }
-    blocks.push({
-      type: "interpretation",
-      text: `Coverage from ${sourcesDetail.length} sources. Combined analysis of the reporting.`,
-    });
+    const { fullContent: blocks, quotedVoices: voices } = await synthesizeStoryDetailAsync(
+      articles.map(toArticleInput)
+    );
     fullContent = blocks;
+    quotedVoices = voices;
+  } else {
+    // quotedVoices from real quotes only (sync, no fullContent)
+    const { quotedVoices: voices } = synthesizeStoryDetail(articles.map(toArticleInput));
+    quotedVoices = voices;
   }
 
   return {
