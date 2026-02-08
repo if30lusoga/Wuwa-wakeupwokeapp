@@ -50,7 +50,7 @@ export function storyToApiShape(
   articles: StoredArticle[]
 ): ArticleBase {
   const signals = computeStorySignals(articles);
-  const sources = new Set(articles.map((a) => a.publisher)).size;
+  const sources = articles.length; // Article count (distinct sources in cluster)
   const newest = articles.reduce((a, b) =>
     a.publishedAt > b.publishedAt ? a : b
   );

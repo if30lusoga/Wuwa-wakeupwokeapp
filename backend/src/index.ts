@@ -30,21 +30,62 @@ await fastify.register(cors, {
 fastify.get("/health", async () => ({ ok: true }));
 
 // GET /api/articles
-fastify.get("/api/articles", async () => {
+fastify.get<{
+  Querystring: {
+    minSources?: string;
+    limit?: string;
+    topic?: string;
+    region?: string;
+  };
+}>("/api/articles", async (request, reply) => {
   try {
     const articleCount = await getArticleCount();
     if (articleCount === 0) return articles;
 
     const storyCount = await getStoryCount();
     if (storyCount > 0) {
+      const minSources = Math.max(1, parseInt(request.query.minSources ?? "3", 10) || 3);
+      const limit = Math.min(50, Math.max(1, parseInt(request.query.limit ?? "15", 10) || 15));
+      const topicFilter = request.query.topic?.trim() || undefined;
+      const regionFilter = request.query.region?.trim() || undefined;
+
       const storiesWithArticles = await getStoriesWithArticles();
-      const result = [];
-      for (const { story, articleIds } of storiesWithArticles) {
+
+      // Filter: sources >= minSources, optional topic/region
+      const filtered = storiesWithArticles.filter(({ story, articleIds }) => {
+        if (articleIds.length < minSources) return false;
+        if (topicFilter && story.topic !== topicFilter) return false;
+        if (regionFilter && story.region !== regionFilter) return false;
+        return true;
+      });
+
+      // Fetch articles for each story to compute newest publishedAt and build result
+      const candidates: Array<{
+        story: (typeof storiesWithArticles)[0]["story"];
+        articleIds: string[];
+        storyArticles: Awaited<ReturnType<typeof getArticlesByIds>>;
+      }> = [];
+      for (const { story, articleIds } of filtered) {
         const storyArticles = await getArticlesByIds(articleIds);
         if (storyArticles.length > 0) {
-          result.push(storyToApiShape(story, storyArticles));
+          candidates.push({ story, articleIds, storyArticles });
         }
       }
+
+      // Sort: sources desc, then newest publishedAt desc
+      candidates.sort((a, b) => {
+        const sourcesA = a.storyArticles.length;
+        const sourcesB = b.storyArticles.length;
+        if (sourcesB !== sourcesA) return sourcesB - sourcesA;
+        const newestA = Math.max(...a.storyArticles.map((x) => new Date(x.publishedAt).getTime()));
+        const newestB = Math.max(...b.storyArticles.map((x) => new Date(x.publishedAt).getTime()));
+        return newestB - newestA;
+      });
+
+      const limited = candidates.slice(0, limit);
+      const result = limited.map(({ story, storyArticles }) =>
+        storyToApiShape(story, storyArticles)
+      );
       if (result.length > 0) return result;
     }
 
