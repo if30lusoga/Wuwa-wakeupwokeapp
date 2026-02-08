@@ -36,6 +36,17 @@ const ENTITY_SEEDS = new Set([
   "affordable", "care", "act", "infrastructure", "inflation", "reduction",
 ]);
 
+/** Generic terms that do not count as entity tokens (over-grouping prevention) */
+const GENERIC_ENTITY = new Set([
+  "washington", "post", "state", "house", "senate", "court", "officials",
+  "department", "agency", "congress", "federal", "supreme", "republican", "democrat",
+  "white", "black", "new", "york", "times", "today", "news", "care", "act",
+]);
+
+const CLUSTER_CAP = 25;
+const STRONG_MATCH_THRESHOLD = 12; // Above this, require strong match
+const STRONG_JACCARD = 0.45;
+
 /** Strip trailing publisher tags like "- BBC News", "| NPR", "— Reuters" */
 function stripPublisherTags(title: string): string {
   // Pipe delimiter often indicates source: "Headline | NPR"
@@ -70,30 +81,35 @@ function keyTokens(title: string): Set<string> {
   return new Set(toks.filter((t) => t.length >= 5 && !FLUFF.has(t)));
 }
 
-/** Entity-like tokens: capitalized words, acronyms, known seeds */
+/** Entity-like tokens: capitalized words, acronyms, known seeds. Excludes GENERIC_ENTITY. */
 function entityTokens(title: string): Set<string> {
   const cleaned = stripPublisherTags(title);
   const result = new Set<string>();
+
+  const add = (t: string) => {
+    const lower = t.toLowerCase();
+    if (!GENERIC_ENTITY.has(lower)) result.add(lower);
+  };
 
   // Capitalized words (potential names/orgs/places)
   const words = cleaned.split(/\s+/);
   for (const w of words) {
     const alpha = w.replace(/[^\w]/g, "");
     if (alpha.length >= 2 && alpha[0] === alpha[0].toUpperCase()) {
-      result.add(alpha.toLowerCase());
+      add(alpha);
     }
   }
 
   // Acronyms: 2–5 uppercase letters
   const acronymMatch = cleaned.match(/\b[A-Z]{2,5}\b/g);
   if (acronymMatch) {
-    for (const ac of acronymMatch) result.add(ac.toLowerCase());
+    for (const ac of acronymMatch) add(ac);
   }
 
   // Known entity seeds present as whole words in normalized title
   const normWords = new Set(normalizeTitle(cleaned).split(/\s+/).filter(Boolean));
   for (const seed of ENTITY_SEEDS) {
-    if (normWords.has(seed)) result.add(seed);
+    if (normWords.has(seed) && !GENERIC_ENTITY.has(seed)) result.add(seed);
   }
 
   return result;
@@ -117,6 +133,7 @@ function jaccardSimilarity(a: Set<string>, b: Set<string>): number {
 }
 
 function areSimilar(
+  clusterSize: number,
   tokensA: Set<string>,
   tokensB: Set<string>,
   keysA: Set<string>,
@@ -124,12 +141,27 @@ function areSimilar(
   entitiesA: Set<string>,
   entitiesB: Set<string>
 ): boolean {
-  // A) Jaccard on normalized tokens
-  if (jaccardSimilarity(tokensA, tokensB) >= SIMILARITY_THRESHOLD) return true;
-  // B) Shared key tokens >= 2
-  if (sharedCount(keysA, keysB) >= 2) return true;
-  // C) Shared entity-like tokens >= 1
-  if (sharedCount(entitiesA, entitiesB) >= 1) return true;
+  const sharedKeys = sharedCount(keysA, keysB);
+  const sharedEntities = sharedCount(entitiesA, entitiesB);
+  const jaccard = jaccardSimilarity(tokensA, tokensB);
+
+  // Hard cap: never grow beyond 25
+  if (clusterSize >= CLUSTER_CAP) return false;
+
+  // Above 12: require strong match only
+  if (clusterSize >= STRONG_MATCH_THRESHOLD) {
+    return (
+      jaccard >= STRONG_JACCARD ||
+      (sharedKeys >= 3 && sharedEntities >= 1)
+    );
+  }
+
+  // Normal case: A) Jaccard, B) key tokens, or C) tightened entity rule
+  if (jaccard >= SIMILARITY_THRESHOLD) return true;
+  if (sharedKeys >= 2) return true;
+  // Entity-only: require >= 2 shared entities, or 1 entity + 1 key
+  if (sharedEntities >= 2) return true;
+  if (sharedEntities >= 1 && sharedKeys >= 1) return true;
   return false;
 }
 
@@ -164,11 +196,22 @@ function computeStoryId(articleIds: string[]): string {
   return createHash("sha256").update(str).digest("hex").slice(0, 16);
 }
 
+export interface SizeBuckets {
+  "1": number;
+  "2-3": number;
+  "4-6": number;
+  "7-12": number;
+  "13-25": number;
+  ">25": number;
+}
+
 export interface ClusterDebugInfo {
   totalArticlesConsidered: number;
   clustersFormed: number;
   clustersMultiArticle: number;
   maxClusterSize: number;
+  maxClusterTitle: string;
+  sizeBuckets: SizeBuckets;
   topClusters: Array<{ storyTitle: string; size: number; publishers: string[] }>;
 }
 
@@ -180,6 +223,8 @@ export async function runClustering(): Promise<{
   clustersFormed: number;
   clustersMultiArticle: number;
   maxClusterSize: number;
+  maxClusterTitle: string;
+  sizeBuckets: SizeBuckets;
   topClusters: Array<{ storyTitle: string; size: number; publishers: string[] }>;
 }> {
   const articles = await getArticlesWithinHours(CLUSTER_HOURS);
@@ -192,6 +237,8 @@ export async function runClustering(): Promise<{
       clustersFormed: 0,
       clustersMultiArticle: 0,
       maxClusterSize: 0,
+      maxClusterTitle: "",
+      sizeBuckets: { "1": 0, "2-3": 0, "4-6": 0, "7-12": 0, "13-25": 0, ">25": 0 },
       topClusters: [],
     };
   }
@@ -245,7 +292,7 @@ export async function runClustering(): Promise<{
           const keysB = getKeys(other);
           const entitiesB = getEntities(other);
 
-          if (areSimilar(tokensA, tokensB, keysA, keysB, entitiesA, entitiesB)) {
+          if (areSimilar(cluster.length, tokensA, tokensB, keysA, keysB, entitiesA, entitiesB)) {
             cluster.push(other);
             assigned.add(other.id);
             queue.push(other);
@@ -271,6 +318,29 @@ export async function runClustering(): Promise<{
 
   const multiArticle = clusters.filter((c) => c.length >= 2);
   const maxSize = clusters.length > 0 ? Math.max(...clusters.map((c) => c.length)) : 0;
+  const maxCluster =
+    clusters.length > 0
+      ? clusters.reduce((a, b) => (b.length > a.length ? b : a))
+      : null;
+  const maxClusterTitle = maxCluster ? pickCanonicalTitle(maxCluster) : "";
+
+  const sizeBuckets: SizeBuckets = {
+    "1": 0,
+    "2-3": 0,
+    "4-6": 0,
+    "7-12": 0,
+    "13-25": 0,
+    ">25": 0,
+  };
+  for (const c of clusters) {
+    const s = c.length;
+    if (s === 1) sizeBuckets["1"]++;
+    else if (s <= 3) sizeBuckets["2-3"]++;
+    else if (s <= 6) sizeBuckets["4-6"]++;
+    else if (s <= 12) sizeBuckets["7-12"]++;
+    else if (s <= 25) sizeBuckets["13-25"]++;
+    else sizeBuckets[">25"]++;
+  }
 
   // Build topClusters from multi-article clusters, sorted by size desc, take 5
   const topClusters = multiArticle
@@ -306,6 +376,8 @@ export async function runClustering(): Promise<{
     clustersFormed: clusters.length,
     clustersMultiArticle: multiArticle.length,
     maxClusterSize: maxSize,
+    maxClusterTitle,
+    sizeBuckets,
     topClusters,
   };
 }
