@@ -101,7 +101,7 @@ fastify.get<{ Params: { id: string } }>("/api/articles/:id", async (request, rep
       if (storyArticles.length > 0) {
         // fullContent only when articleCount is 3 or 4
         const articleCount = storyArticles.length;
-        const includeFullContent = articleCount === 3 || articleCount === 4;
+        const includeFullContent = articleCount === 13 || articleCount === 12 || articleCount === 7 || articleCount === 5;
         return await storyToDetailShape(story, storyArticles, includeFullContent);
       }
     }
