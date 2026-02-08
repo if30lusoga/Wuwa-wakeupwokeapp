@@ -125,8 +125,13 @@ export async function getAllArticles(): Promise<StoredArticle[]> {
 }
 
 export async function getArticlesWithin24h(): Promise<StoredArticle[]> {
+  return getArticlesWithinHours(24);
+}
+
+/** Fetch articles published within the last N hours. Used for clustering. */
+export async function getArticlesWithinHours(hours: number): Promise<StoredArticle[]> {
   const database = await getDb();
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
   const stmt = database.prepare(`SELECT id, title, summary, topic, region, publisher, publishedAt, createdAt
     FROM articles WHERE publishedAt >= ? ORDER BY publishedAt DESC`);
   stmt.bind([since]);
