@@ -6,6 +6,26 @@ import { apiGet } from "@/lib/api";
 
 const topics = ["All", "Politics", "Climate", "Business"] as const;
 
+const DEMO_ID = "703bcc3b731cdddd";
+
+const DEMO_FEED_ITEM: NewsArticle = {
+  id: DEMO_ID,
+  title: "Federal Courts Scrutinize ICE Detention Practices Amid Legal Challenges",
+  summary: "Recent federal court rulings and investigative reporting have renewed scrutiny of U.S. Immigration and Customs Enforcement’s detention and enforcement practices. Judges have questioned aspects of detention conditions and due process, while ICE maintains its policies comply with federal law. Reporting highlights differing interpretations of the rulings and what they may mean for future enforcement.",
+  topic: "Politics",
+  sources: 13,
+  timeAgo: "3h ago",
+  transparencySignals: {
+    hasAttributionClarity: true,
+    sourceDiversity: "high",
+    hasPrimaryData: true,
+    sensationalLanguageDetected: false,
+  },
+  contentBreakdown: { factual: 65, opinion: 15, interpretation: 20 },
+};
+
+
+
 const Index = () => {
   const [activeTopic, setActiveTopic] = useState<string>("All");
   const [articles, setArticles] = useState<NewsArticle[]>([]);
@@ -18,7 +38,12 @@ const Index = () => {
     setError(null);
     apiGet<NewsArticle[]>("/api/articles")
       .then((data) => {
-        if (!cancelled) setArticles(data);
+        if (!cancelled) {
+          const withoutDemo = data.filter((a: any) => a.id !== DEMO_ID);
+          setArticles([DEMO_FEED_ITEM, ...withoutDemo]);
+        }
+
+        
       })
       .catch((err) => {
         if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load");

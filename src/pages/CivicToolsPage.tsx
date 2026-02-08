@@ -39,7 +39,7 @@ const CivicToolsPage = () => {
 
       {/* Info Banner */}
       <div className="rounded-xl bg-civic-bg border border-civic/20 p-4 mb-8">
-        <p className="text-sm text-foreground/80">About Civic Tools: This section provides factual civic information as a public resource. It is intentionally separated from news content to avoid conflating information with advocacy. No actions are suggested or promoted.<strong className="text-foreground">About Civic Tools:</strong> This section provides factual civic information as a public resource. It is intentionally separated from news content to avoid conflating information with advocacy. No actions are suggested or promoted.
+        <p className="text-sm text-foreground/80"><strong className="text-foreground">About Em-pact Links:</strong> Em-Pact Links emphasize empathy over impact—offering neutral, clearly labeled resources that help people understand and engage with issues at their own pace, without prescribing beliefs or actions.
         </p>
       </div>
 
