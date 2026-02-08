@@ -62,7 +62,7 @@ fastify.get<{
           return s >= min && s <= max;
         });
 
-      let candidates = filterByRange(2, 4);
+      let candidates = filterByRange(2, 20);
       if (candidates.length < 8) candidates = filterByRange(2, 5);
 
       // Sort: sources desc, then newest publishedAt desc
